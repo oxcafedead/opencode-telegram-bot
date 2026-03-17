@@ -23,7 +23,20 @@ function formatTokenCount(count: number): string {
 function formatContextForButton(contextInfo: ContextInfo): string {
   const used = formatTokenCount(contextInfo.tokensUsed);
   const limit = formatTokenCount(contextInfo.tokensLimit);
-  const percent = Math.round((contextInfo.tokensUsed / contextInfo.tokensLimit) * 100);
+  const percent =
+    contextInfo.tokensLimit > 0
+      ? Math.round((contextInfo.tokensUsed / contextInfo.tokensLimit) * 100)
+      : 0;
+
+  if (contextInfo.cost !== undefined && contextInfo.cost !== null) {
+    return t("keyboard.context_with_cost", {
+      used,
+      limit,
+      percent,
+      cost: `$${contextInfo.cost.toFixed(2)}`,
+    });
+  }
+
   return t("keyboard.context", { used, limit, percent });
 }
 

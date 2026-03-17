@@ -78,16 +78,10 @@ export async function handleVariantSelect(ctx: Context): Promise<boolean> {
         : null);
 
     if (contextInfo) {
-      keyboardManager.updateContext(contextInfo.tokensUsed, contextInfo.tokensLimit);
+      keyboardManager.updateContextInfo(contextInfo);
     }
 
-    const variantName = formatVariantForButton(variantId);
-    const keyboard = createMainKeyboard(
-      currentAgent,
-      updatedModel,
-      contextInfo ?? undefined,
-      variantName,
-    );
+    const keyboard = keyboardManager.getKeyboard();
 
     // Send confirmation message with updated keyboard
     const displayName = formatVariantForDisplay(variantId);

@@ -44,15 +44,10 @@ export async function startCommand(ctx: Context): Promise<void> {
   keyboardManager.updateAgent(currentAgent);
   keyboardManager.updateModel(currentModel);
   if (contextInfo) {
-    keyboardManager.updateContext(contextInfo.tokensUsed, contextInfo.tokensLimit);
+    keyboardManager.updateContextInfo(contextInfo);
   }
 
-  const keyboard = createMainKeyboard(
-    currentAgent,
-    currentModel,
-    contextInfo ?? undefined,
-    variantName,
-  );
+  const keyboard = keyboardManager.getKeyboard();
 
   await ctx.reply(t("start.welcome"), { reply_markup: keyboard });
 }

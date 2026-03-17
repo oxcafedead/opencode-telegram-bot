@@ -66,6 +66,12 @@ export async function newCommand(ctx: CommandContext<Context>) {
     const currentModel = getStoredModel();
     const contextInfo = pinnedMessageManager.getContextInfo();
     const variantName = formatVariantForButton(currentModel.variant || "default");
+
+    // Pre-update keyboard manager with new context (usually reset to 0 for /new)
+    if (contextInfo) {
+      keyboardManager.updateContextInfo(contextInfo);
+    }
+
     const keyboard = createMainKeyboard(
       currentAgent,
       currentModel,

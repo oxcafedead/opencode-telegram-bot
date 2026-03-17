@@ -91,16 +91,10 @@ export async function handleModelSelect(ctx: Context): Promise<boolean> {
         : null);
 
     if (contextInfo) {
-      keyboardManager.updateContext(contextInfo.tokensUsed, contextInfo.tokensLimit);
+      keyboardManager.updateContextInfo(contextInfo);
     }
 
-    const variantName = formatVariantForButton(modelInfo.variant || "default");
-    const keyboard = createMainKeyboard(
-      currentAgent,
-      modelInfo,
-      contextInfo ?? undefined,
-      variantName,
-    );
+    const keyboard = keyboardManager.getKeyboard();
     const displayName = formatModelForDisplay(modelInfo.providerID, modelInfo.modelID);
 
     clearActiveInlineMenu("model_selected");

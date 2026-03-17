@@ -60,18 +60,10 @@ export async function handleAgentSelect(ctx: Context): Promise<boolean> {
 
     keyboardManager.updateModel(currentModel);
     if (contextInfo) {
-      keyboardManager.updateContext(contextInfo.tokensUsed, contextInfo.tokensLimit);
+      keyboardManager.updateContextInfo(contextInfo);
     }
 
-    const state = keyboardManager.getState();
-    const variantName =
-      state?.variantName ?? formatVariantForButton(currentModel.variant || "default");
-    const keyboard = createMainKeyboard(
-      agentName,
-      currentModel,
-      contextInfo ?? undefined,
-      variantName,
-    );
+    const keyboard = keyboardManager.getKeyboard();
     const displayName = getAgentDisplayName(agentName);
 
     clearActiveInlineMenu("agent_selected");

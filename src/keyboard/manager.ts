@@ -85,6 +85,20 @@ class KeyboardManager {
   }
 
   /**
+   * Update full context information including cost
+   */
+  public updateContextInfo(info: ContextInfo & { cost?: number }): void {
+    if (!this.state) {
+      logger.warn("[KeyboardManager] Cannot update context info: not initialized");
+      return;
+    }
+    this.state.contextInfo = { ...info };
+    logger.debug(
+      `[KeyboardManager] Context info updated: ${info.tokensUsed}/${info.tokensLimit}${info.cost !== undefined ? ` • $${info.cost.toFixed(2)}` : ""}`,
+    );
+  }
+
+  /**
    * Update context information
    */
   public updateContext(tokensUsed: number, tokensLimit: number): void {
@@ -92,8 +106,25 @@ class KeyboardManager {
       logger.warn("[KeyboardManager] Cannot update context: not initialized");
       return;
     }
-    this.state.contextInfo = { tokensUsed, tokensLimit };
-    logger.debug(`[KeyboardManager] Context updated: ${tokensUsed}/${tokensLimit}`);
+    const currentCost = this.state.contextInfo?.cost;
+    this.updateContextInfo({ tokensUsed, tokensLimit, cost: currentCost });
+  }
+
+  /**
+   * Update cost information
+   */
+  public updateCost(cost: number): void {
+    if (!this.state) {
+      logger.warn("[KeyboardManager] Cannot update cost: not initialized");
+      return;
+    }
+    const currentTokensUsed = this.state.contextInfo?.tokensUsed || 0;
+    const currentTokensLimit = this.state.contextInfo?.tokensLimit || 0;
+    this.updateContextInfo({
+      tokensUsed: currentTokensUsed,
+      tokensLimit: currentTokensLimit,
+      cost,
+    });
   }
 
   /**

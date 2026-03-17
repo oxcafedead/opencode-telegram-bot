@@ -80,7 +80,7 @@ export async function statusCommand(ctx: CommandContext<Context>) {
     // Sync current context (tokens used + limit) into keyboard state
     const contextInfo = pinnedMessageManager.getContextInfo();
     if (contextInfo) {
-      keyboardManager.updateContext(contextInfo.tokensUsed, contextInfo.tokensLimit);
+      keyboardManager.updateContextInfo(contextInfo);
     }
     const keyboard = keyboardManager.getKeyboard();
     if (ctx.chat) {

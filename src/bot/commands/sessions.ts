@@ -284,7 +284,7 @@ export async function handleSessionSelect(ctx: Context): Promise<boolean> {
       // Update keyboard with loaded context (callback executes async via setImmediate, so update manually)
       const contextInfo = pinnedMessageManager.getContextInfo();
       if (contextInfo) {
-        keyboardManager.updateContext(contextInfo.tokensUsed, contextInfo.tokensLimit);
+        keyboardManager.updateContextInfo(contextInfo);
       }
 
       // Delete loading message

@@ -10,6 +10,7 @@ import {
 } from "../settings/manager.js";
 import { getStoredModel } from "../model/manager.js";
 import type { FileChange, PinnedMessageState, TokensInfo } from "./types.js";
+import type { ContextInfo } from "../keyboard/types.js";
 import { t } from "../i18n/index.js";
 
 class PinnedMessageManager {
@@ -25,9 +26,15 @@ class PinnedMessageManager {
     tokensLimit: 0,
     lastUpdated: 0,
     changedFiles: [],
+    cost: 0,
   };
   private contextLimit: number | null = null;
-  private onKeyboardUpdateCallback?: (tokensUsed: number, tokensLimit: number) => void;
+  private onKeyboardUpdateCallback?: (
+    tokensUsed: number,
+    tokensLimit: number,
+    cost?: number,
+  ) => void;
+  private onCostKeyboardCallback?: (cost: number) => void;
 
   /**
    * Initialize manager with bot API and chat ID
@@ -52,6 +59,7 @@ class PinnedMessageManager {
 
     // Reset tokens for new session
     this.state.tokensUsed = 0;
+    this.state.cost = 0;
 
     // Update state
     this.state.sessionId = sessionId;
@@ -65,8 +73,8 @@ class PinnedMessageManager {
     await this.fetchContextLimit();
 
     // Trigger keyboard update callback with reset context (0 tokens)
-    if (this.onKeyboardUpdateCallback && this.state.tokensLimit > 0) {
-      this.onKeyboardUpdateCallback(this.state.tokensUsed, this.state.tokensLimit);
+    if (this.onKeyboardUpdateCallback) {
+      this.onKeyboardUpdateCallback(this.state.tokensUsed, this.state.tokensLimit, this.state.cost);
     }
 
     // Reset changed files for new session
@@ -108,9 +116,10 @@ class PinnedMessageManager {
         return;
       }
 
-      // Get the maximum context size from session history
+      // Get the maximum context size and cost from session history
       // Context = input + cache.read (cache.read contains previously cached context)
       let maxContextSize = 0;
+      let maxCost = 0;
       logger.debug(`[PinnedManager] Processing ${messagesData.length} messages from history`);
 
       messagesData.forEach(({ info }) => {
@@ -121,6 +130,7 @@ class PinnedMessageManager {
               input: number;
               cache?: { read: number };
             };
+            cost?: number;
           };
 
           // Skip summary messages (technical, not real agent responses)
@@ -132,22 +142,31 @@ class PinnedMessageManager {
           const input = assistantInfo.tokens?.input || 0;
           const cacheRead = assistantInfo.tokens?.cache?.read || 0;
           const contextSize = input + cacheRead;
+          const cost = assistantInfo.cost || 0;
 
           logger.debug(
-            `[PinnedManager] Assistant message: input=${input}, cache.read=${cacheRead}, total=${contextSize}`,
+            `[PinnedManager] Assistant message: input=${input}, cache.read=${cacheRead}, total=${contextSize}, cost=$${cost.toFixed(2)}`,
           );
 
           // Keep track of maximum context size (peak usage in session)
           if (contextSize > maxContextSize) {
             maxContextSize = contextSize;
           }
+
+          // Keep track of maximum cost (cumulative in OpenCode)
+          if (cost > maxCost) {
+            maxCost = cost;
+          }
         }
       });
 
       this.state.tokensUsed = maxContextSize;
+      this.state.cost = maxCost;
       this.state.sessionId = sessionId;
 
-      logger.info(`[PinnedManager] Loaded context from history: ${this.state.tokensUsed} tokens`);
+      logger.info(
+        `[PinnedManager] Loaded context from history: ${this.state.tokensUsed} tokens, cost: $${this.state.cost.toFixed(2)}`,
+      );
 
       await this.updatePinnedMessage();
     } catch (err) {
@@ -190,17 +209,36 @@ class PinnedMessageManager {
   }
 
   /**
+   * Called when cost info is received from SSE events
+   */
+  async onCostUpdate(cost: number): Promise<void> {
+    this.state.cost = cost;
+    logger.debug(`[PinnedManager] Cost updated: $${cost.toFixed(2)}`);
+    await this.updatePinnedMessage();
+  }
+
+  /**
    * Set callback for keyboard updates when context changes
    */
-  setOnKeyboardUpdate(callback: (tokensUsed: number, tokensLimit: number) => void): void {
+  setOnKeyboardUpdate(
+    callback: (tokensUsed: number, tokensLimit: number, cost?: number) => void,
+  ): void {
     this.onKeyboardUpdateCallback = callback;
     logger.debug("[PinnedManager] Keyboard update callback registered");
   }
 
   /**
+   * Set callback for keyboard updates when cost changes
+   */
+  setOnCostKeyboardUpdate(callback: (cost: number) => void): void {
+    this.onCostKeyboardCallback = callback;
+    logger.debug("[PinnedManager] Cost keyboard update callback registered");
+  }
+
+  /**
    * Get current context information
    */
-  getContextInfo(): { tokensUsed: number; tokensLimit: number } | null {
+  getContextInfo(): (ContextInfo & { cost?: number }) | null {
     // Use cached contextLimit if tokensLimit is not set yet
     const limit = this.state.tokensLimit > 0 ? this.state.tokensLimit : this.contextLimit || 0;
     if (limit === 0) {
@@ -209,6 +247,7 @@ class PinnedMessageManager {
     return {
       tokensUsed: this.state.tokensUsed,
       tokensLimit: limit,
+      cost: this.state.cost,
     };
   }
 
@@ -565,6 +604,10 @@ class PinnedMessageManager {
       }),
     ];
 
+    if (this.state.cost !== undefined && this.state.cost !== null) {
+      lines.push(t("pinned.line.cost", { cost: `$${this.state.cost.toFixed(2)}` }));
+    }
+
     if (this.state.changedFiles.length > 0) {
       const maxFiles = 10;
       const total = this.state.changedFiles.length;
@@ -652,9 +695,24 @@ class PinnedMessageManager {
       logger.debug(`[PinnedManager] Updated pinned message: ${this.state.messageId}`);
 
       // Trigger keyboard update callback
-      if (this.onKeyboardUpdateCallback && this.state.tokensLimit > 0) {
+      if (this.onKeyboardUpdateCallback) {
+        const tokensUsed = this.state.tokensUsed;
+        const tokensLimit = this.state.tokensLimit;
+        const cost = this.state.cost;
         setImmediate(() => {
-          this.onKeyboardUpdateCallback!(this.state.tokensUsed, this.state.tokensLimit);
+          this.onKeyboardUpdateCallback!(tokensUsed, tokensLimit, cost);
+        });
+      }
+
+      // Trigger cost keyboard update callback
+      if (
+        this.onCostKeyboardCallback &&
+        this.state.cost !== undefined &&
+        this.state.cost !== null
+      ) {
+        const cost = this.state.cost;
+        setImmediate(() => {
+          this.onCostKeyboardCallback!(cost);
         });
       }
     } catch (err: unknown) {

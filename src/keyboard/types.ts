@@ -6,6 +6,7 @@ import type { ModelInfo } from "../model/types.js";
 export interface ContextInfo {
   tokensUsed: number;
   tokensLimit: number;
+  cost?: number;
 }
 
 /**

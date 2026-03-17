@@ -281,6 +281,7 @@ export const fr: I18nDictionary = {
 
   "keyboard.agent_mode": "{emoji} Mode {name}",
   "keyboard.context": "📊 {used} / {limit} ({percent}%)",
+  "keyboard.context_with_cost": "📊 {used} / {limit} • {cost}",
   "keyboard.context_empty": "📊 0",
   "keyboard.variant": "💭 {name}",
   "keyboard.variant_default": "💡 Par défaut",
@@ -291,6 +292,7 @@ export const fr: I18nDictionary = {
   "pinned.line.project": "Projet : {project}",
   "pinned.line.model": "Modèle : {model}",
   "pinned.line.context": "Contexte : {used} / {limit} ({percent}%)",
+  "pinned.line.cost": "Coût : {cost} dépensé",
   "pinned.files.title": "Fichiers ({count}) :",
   "pinned.files.item": "  {path}{diff}",
   "pinned.files.more": "  ... et encore {count}",

@@ -367,13 +367,26 @@ async function ensureEventSubscription(directory: string): Promise<void> {
       // This ensures keyboard has correct context when onComplete sends the reply
       const contextSize = tokens.input + tokens.cacheRead;
       const contextLimit = pinnedMessageManager.getContextLimit();
-      if (contextLimit > 0) {
-        keyboardManager.updateContext(contextSize, contextLimit);
-      }
+      keyboardManager.updateContext(contextSize, contextLimit);
 
       await pinnedMessageManager.onMessageComplete(tokens);
     } catch (err) {
       logger.error("[Bot] Error updating pinned message with tokens:", err);
+    }
+  });
+
+  summaryAggregator.setOnCost(async (cost) => {
+    if (!pinnedMessageManager.isInitialized()) {
+      return;
+    }
+
+    try {
+      logger.debug(`[Bot] Cost update: $${cost.toFixed(2)}`);
+      // Update keyboardManager SYNCHRONOUSLY before any await
+      keyboardManager.updateCost(cost);
+      await pinnedMessageManager.onCostUpdate(cost);
+    } catch (err) {
+      logger.error("[Bot] Error updating cost:", err);
     }
   });
 
@@ -460,10 +473,12 @@ async function ensureEventSubscription(directory: string): Promise<void> {
     pinnedMessageManager.addFileChange(change);
   });
 
-  pinnedMessageManager.setOnKeyboardUpdate(async (tokensUsed, tokensLimit) => {
+  pinnedMessageManager.setOnKeyboardUpdate(async (tokensUsed, tokensLimit, cost) => {
     try {
-      logger.debug(`[Bot] Updating keyboard with context: ${tokensUsed}/${tokensLimit}`);
-      keyboardManager.updateContext(tokensUsed, tokensLimit);
+      logger.debug(
+        `[Bot] Updating keyboard with context: ${tokensUsed}/${tokensLimit}${cost !== undefined ? ` • $${cost.toFixed(2)}` : ""}`,
+      );
+      keyboardManager.updateContextInfo({ tokensUsed, tokensLimit, cost });
       // Don't send automatic keyboard updates - keyboard will update naturally with user messages
     } catch (err) {
       logger.error("[Bot] Error updating keyboard context:", err);

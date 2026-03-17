@@ -274,12 +274,7 @@ export async function handleProjectSelect(ctx: Context): Promise<boolean> {
     // Reset context to 0 (no session selected) with current model's limit
     keyboardManager.updateContext(0, contextLimit);
 
-    // Get current state for keyboard (with context = 0)
-    const currentAgent = getStoredAgent();
-    const currentModel = getStoredModel();
-    const contextInfo = { tokensUsed: 0, tokensLimit: contextLimit };
-    const variantName = formatVariantForButton(currentModel.variant || "default");
-    const keyboard = createMainKeyboard(currentAgent, currentModel, contextInfo, variantName);
+    const keyboard = keyboardManager.getKeyboard();
 
     const projectName = selectedProject.name || selectedProject.worktree;
 

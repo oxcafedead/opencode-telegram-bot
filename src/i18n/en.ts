@@ -269,6 +269,7 @@ export const en = {
 
   "keyboard.agent_mode": "{emoji} {name} Mode",
   "keyboard.context": "📊 {used} / {limit} ({percent}%)",
+  "keyboard.context_with_cost": "📊 {used} / {limit} • {cost}",
   "keyboard.context_empty": "📊 0",
   "keyboard.variant": "💭 {name}",
   "keyboard.variant_default": "💡 Default",
@@ -279,6 +280,7 @@ export const en = {
   "pinned.line.project": "Project: {project}",
   "pinned.line.model": "Model: {model}",
   "pinned.line.context": "Context: {used} / {limit} ({percent}%)",
+  "pinned.line.cost": "Cost: {cost} spent",
   "pinned.files.title": "Files ({count}):",
   "pinned.files.item": "  {path}{diff}",
   "pinned.files.more": "  ... and {count} more",
